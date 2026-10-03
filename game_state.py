@@ -1,0 +1,182 @@
+"""
+Gestión del estado del juego ( Interacciones, pantallas de carga, algunas actualizaciones de sprints)
+
+"""
+
+import pygame
+from config import *
+from entities import *
+from levels import LevelManager
+from collisions import CollisionManager
+from sprite_manager import SpriteManager
+
+
+class GameState:
+    """Gestiona el estado completo del juego"""
+
+    def __init__(self):
+        # Cargar sprites
+        self.sprite_manager = SpriteManager()
+
+        # Grupos de sprites
+        self.player = Player(self.sprite_manager)
+        self.player_bullets = pygame.sprite.Group()
+        self.enemy_bullets = pygame.sprite.Group()
+        self.asteroids = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
+        self.powerups = pygame.sprite.Group()
+        self.boss_sprite = None
+
+        # Gestores
+        self.level_manager = LevelManager()
+        self.collision_manager = CollisionManager()
+
+        # Boosts del jugador
+        self.fire_rate_boost = 0
+        self.speed_boost = 0
+
+    def reset(self):
+        """Reiniciar estado para nueva partida"""
+        self.player = Player(self.sprite_manager)
+        self.player_bullets.empty()
+        self.enemy_bullets.empty()
+        self.asteroids.empty()
+        self.enemies.empty()
+        self.powerups.empty()
+        self.boss_sprite = None
+        self.fire_rate_boost = 0
+        self.speed_boost = 0
+        self.level_manager.reset()
+        self.collision_manager.score = 0
+
+    def update(self, dt, keys, renderer=None):
+        """Actualizar estado del juego"""
+        now = pygame.time.get_ticks()
+
+        # Actualizar jugador con boosts
+        self._update_player_boosts(now)
+        should_shoot = self.player.update(keys, dt)
+        if should_shoot:
+            bullet = Bullet(self.player.rect.centerx, self.player.rect.top,
+                          PLAYER_BULLET_SPEED, COLOR_PLAYER_BULLET,
+                          sprite_manager=self.sprite_manager, bullet_type=self.player.bullet_type)
+            self.player_bullets.add(bullet)
+
+        # Actualizar nivel
+        result = self.level_manager.update(dt, self.asteroids, self.enemies,
+                                          self.player.rect.center, self.sprite_manager)
+
+        # Manejar resultados del nivel
+        if result in ("level_complete", "boss_spawn", "victory", "game_over"):
+            # Limpiar todas las entidades en pantalla antes de la transición
+            self.player_bullets.empty()
+            self.enemy_bullets.empty()
+            self.asteroids.empty()
+            self.enemies.empty()
+            self.powerups.empty()
+
+        if result == "boss_spawn" and self.level_manager.boss:
+            self.boss_sprite = self.level_manager.boss
+            self.enemies.add(self.boss_sprite)
+
+        # Actualizar entidades
+        self._update_entities(dt)
+
+        # Colisiones
+        events = self.collision_manager.check_all(
+            self.player, self.player_bullets, self.enemy_bullets,
+            self.asteroids, self.enemies, self.boss_sprite,
+            self.level_manager, self.powerups
+        )
+
+        # Agregar explosiones cuando se destruyen entidades
+        if renderer and events["explosions"]:
+            for pos_x, pos_y in events["explosions"]:
+                renderer.add_explosion(pos_x, pos_y, self.sprite_manager)
+        
+
+        # Aplicar power-ups
+        if events["powerup_collected"]:
+            self._collect_powerup(events["powerup_collected"])
+
+        # Actualizar power-ups
+        self.powerups.update(dt)
+
+        # Game over
+        if not self.player.alive:
+            self.level_manager.level_state = "game_over"
+
+    def _update_player_boosts(self, now):
+        """Actualizar boosts del jugador"""
+        if self.fire_rate_boost > 0:
+            if self.player.bullet_type == "morada":
+                self.player.fire_rate_multiplier = POWERUP_ORANGE_FIRE_RATE_MULTIPLIER
+            elif self.player.bullet_type == "verde":
+                self.player.fire_rate_multiplier = POWERUP_BLUE_FIRE_RATE_MULTIPLIER
+        else:
+            self.player.fire_rate_multiplier = 1.0
+
+        if self.speed_boost > 0:
+            self.player.speed = PLAYER_SPEED + POWERUP_SPEED_BOOST
+        else:
+            self.player.speed = PLAYER_SPEED
+
+    def _update_entities(self, dt):
+        """Actualizar todas las entidades"""
+        self.player_bullets.update(dt)
+        self.enemy_bullets.update(dt)
+        self.asteroids.update(dt)
+
+        # Actualizar enemigos
+        for enemy in self.enemies:
+            should_fire = enemy.update(dt, self.player.rect.center)
+            if should_fire:
+                #Comprueba si el enemigo dispara multiples proyectiles
+                if hasattr(enemy, 'get_bullets'):
+                    bullets = enemy.get_bullets(self.player.rect.center)
+                    if bullets:
+                        self.enemy_bullets.add(*bullets)
+                #O si un enemigo normal dispara de uno en uno
+                elif hasattr(enemy, 'get_bullet'):
+                    bullet = enemy.get_bullet(self.player.rect.center)
+                    if bullet:
+                        self.enemy_bullets.add(bullet)
+
+        # Actualizar jefe
+        if self.boss_sprite and self.boss_sprite.alive():
+            should_fire = self.boss_sprite.update(dt, self.player.rect.center)
+            if should_fire:
+                for b in self.boss_sprite.get_bullets(self.player.rect.center):
+                    self.enemy_bullets.add(b)
+
+    def _collect_powerup(self, power_type):
+        """Recoger power-up y aplicar efecto"""
+        now = pygame.time.get_ticks()
+        if power_type == "health":
+            self.player.health = min(self.player.max_health,
+                                    self.player.health + POWERUP_HEALTH_AMOUNT)
+        elif power_type == "orange":
+            # Power-up naranja: cambia a bala morada con +0.25% daño
+            self.player.bullet_type = "morada"
+            self.player.damage_multiplier = POWERUP_ORANGE_DAMAGE_MULTIPLIER
+            self.player.fire_rate_multiplier = POWERUP_ORANGE_FIRE_RATE_MULTIPLIER #Aplica el efecto
+            self.fire_rate_boost = now + POWERUP_DURATION
+        
+        elif power_type == "blue":
+            # Power-up azul: cambia a bala verde con -1.25% daño pero más velocidad de disparo
+            self.player.bullet_type = "verde"
+            self.player.damage_multiplier = POWERUP_BLUE_DAMAGE_MULTIPLIER
+            self.fire_rate_boost = now + POWERUP_DURATION
+
+    def _apply_powerups(self):
+        """Aplicar efectos de power-ups activos"""
+        now = pygame.time.get_ticks()
+
+        #Logica de duracion power ups
+        if self.fire_rate_boost > 0 and now > self.fire_rate_boost:
+            self.fire_rate_boost = 0
+            self.player.damage_multiplier = 1.0
+            self.player.fire_rate_multiplier = 1.0
+            self.player.bullet_type = "dorada"  # Volver a bala original
+        if self.speed_boost > 0 and now > self.speed_boost:
+            self.speed_boost = 0
