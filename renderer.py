@@ -29,6 +29,11 @@ class Renderer:
             explosion = ExplosionAnimation(x, y, scaled_frames, frame_duration=80)
             self.explosions.append(explosion)
 
+    def add_powerup_pickup(self, x, y, power_type, sprite_manager):
+        """Animacion al recoger un power-up (se reproduce una vez, igual que las explosiones)"""
+        frames = sprite_manager.get_powerup_pickup_frames(power_type)
+        self.explosions.append(ExplosionAnimation(x, y, frames, frame_duration=50))
+
     def update_explosions(self, dt):
         """Actualizar todas las animaciones de explosión"""
         for explosion in self.explosions[:]:

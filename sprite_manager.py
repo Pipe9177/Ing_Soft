@@ -10,6 +10,7 @@ Carga y gestiona todos los sprites del juego (Ok miren, aca deben tener demasiad
 
 import pygame
 import os
+from config import POWERUP_SCALE
 
 # Ruta base de las imágenes
 IMAGES_PATH = os.path.join(os.path.dirname(__file__), "assets", "images")
@@ -193,25 +194,37 @@ class SpriteManager:
 
         return pygame.transform.scale(image, (new_width, new_height))
 
+    def _scale_powerup(self, image):
+        """Escalar un sprite de power-up segun POWERUP_SCALE (config.py)"""
+        if POWERUP_SCALE == 1:
+            return image
+        w, h = image.get_size()
+        return pygame.transform.scale(image, (round(w * POWERUP_SCALE), round(h * POWERUP_SCALE)))
+
     def _load_powerups(self):
-        """Cargar sprites de power-ups (usando formas geométricas)"""
-        # Power-up de vida (círculo rojo)
-        health = pygame.Surface((25, 25), pygame.SRCALPHA)
-        pygame.draw.circle(health, (255, 0, 0), (12, 12), 10)
-        pygame.draw.circle(health, (255, 255, 255), (12, 12), 6)
-        self.powerups["health"] = health
-
-        # Power-up naranja (bala morada: +0.25% daño)
-        orange = pygame.Surface((25, 25), pygame.SRCALPHA)
-        pygame.draw.circle(orange, (255, 165, 0), (12, 12), 10)
-        pygame.draw.circle(orange, (255, 255, 255), (12, 12), 5)
-        self.powerups["orange"] = orange
-
-        # Power-up azul (bala verde: -1.25% daño pero más velocidad de disparo)
-        blue = pygame.Surface((25, 25), pygame.SRCALPHA)
-        pygame.draw.circle(blue, (0, 150, 255), (12, 12), 10)
-        pygame.draw.circle(blue, (255, 255, 255), (12, 12), 5)
-        self.powerups["blue"] = blue
+        """Cargar sprites de power-ups (animados: flotar y recoger)"""
+        powerups_path = os.path.join(IMAGES_PATH, "powerups")
+        # Clave que usa el codigo -> carpeta en assets/images/powerups
+        # OJO: "orange" = bala MORADA (+daño) y "blue" = bala VERDE (+velocidad de disparo)
+        folders = {
+            "health": "powerup_vida",
+            "orange": "powerup_balas_moradas",
+            "blue": "powerup_balas_verdes",
+        }
+        self.powerup_float = {}   # 8 frames mientras cae/flota
+        self.powerup_pickup = {}  # 6 frames al recogerlo
+        for power_type, folder in folders.items():
+            folder_path = os.path.join(powerups_path, folder)
+            self.powerup_float[power_type] = [
+                self._scale_powerup(self._load_image(os.path.join(folder_path, f"{folder}_flotar_{i}.png")))
+                for i in range(1, 9)
+            ]
+            self.powerup_pickup[power_type] = [
+                self._scale_powerup(self._load_image(os.path.join(folder_path, f"{folder}_recoger_{i}.png")))
+                for i in range(1, 7)
+            ]
+            # Primer frame como sprite fijo (compatibilidad con get_powerup)
+            self.powerups[power_type] = self.powerup_float[power_type][0]
 
 
     def _load_boss(self): # Si quieren tocar esto, mas les vale tener una copia de este codigo listo
@@ -332,6 +345,15 @@ class SpriteManager:
     def get_powerup(self, power_type):
         """Obtener sprite de power-up"""
         return self.powerups.get(power_type, self.powerups["health"])
+
+    def get_powerup_float_frame(self, power_type, frame_index):
+        """Obtener frame de la animacion de flotar del power-up"""
+        frames = self.powerup_float.get(power_type, self.powerup_float["health"])
+        return frames[frame_index % len(frames)]
+
+    def get_powerup_pickup_frames(self, power_type):
+        """Obtener los frames de la animacion de recoger el power-up"""
+        return self.powerup_pickup.get(power_type, self.powerup_pickup["health"])
 
 
     def get_boss_projectile_frame(self, frame_index): # Tocar bajo cuidado

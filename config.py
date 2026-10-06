@@ -79,6 +79,7 @@ ENEMY_VERDE_BULLET_DAMAGE = 50
 POWERUP_HEALTH_AMOUNT = 30
 POWERUP_DROP_CHANCE = 0.15  # 15% de probabilidad de drop
 POWERUP_DURATION = 7000  # ms de duración para power-ups temporales (7 segundos)
+POWERUP_SCALE = 1.5  # Tamaño de los sprites de power-ups (1 = original 40x40, 1.5 = 60x60, 2 = 80x80)
 
 # Power-up naranja (bala morada): +0.00025 daño
 POWERUP_ORANGE_DAMAGE_MULTIPLIER = 1.00025
@@ -119,3 +120,6 @@ SCORE_BOSS = 500
 
 # === Otros ===
 POWERUP_SPEED_BOOST = 2.0  # Velocidad extra al recoger power-up azul
+
+# === Trucos (cheats) ===
+CHEAT_GOD_MODE_CODE = "777"  # Escribe estos numeros durante la partida para activar/desactivar el MODO DIOS

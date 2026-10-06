@@ -9,6 +9,7 @@ from entities import *
 from levels import LevelManager
 from collisions import CollisionManager
 from sprite_manager import SpriteManager
+from sound_manager import SoundManager
 
 
 class GameState:
@@ -17,6 +18,7 @@ class GameState:
     def __init__(self):
         # Cargar sprites
         self.sprite_manager = SpriteManager()
+        self.sound_manager = SoundManager()
 
         # Grupos de sprites
         self.player = Player(self.sprite_manager)
@@ -26,10 +28,11 @@ class GameState:
         self.enemies = pygame.sprite.Group()
         self.powerups = pygame.sprite.Group()
         self.boss_sprite = None
+        self.boss_group = pygame.sprite.Group()  # grupo propio del jefe (no es un enemigo normal)
 
         # Gestores
         self.level_manager = LevelManager()
-        self.collision_manager = CollisionManager()
+        self.collision_manager = CollisionManager(self.sprite_manager)
 
         # Boosts del jugador
         self.fire_rate_boost = 0
@@ -44,6 +47,7 @@ class GameState:
         self.enemies.empty()
         self.powerups.empty()
         self.boss_sprite = None
+        self.boss_group.empty()
         self.fire_rate_boost = 0
         self.speed_boost = 0
         self.level_manager.reset()
@@ -61,12 +65,22 @@ class GameState:
                           PLAYER_BULLET_SPEED, COLOR_PLAYER_BULLET,
                           sprite_manager=self.sprite_manager, bullet_type=self.player.bullet_type)
             self.player_bullets.add(bullet)
+            self.sound_manager.play("shoot_purple" if self.player.bullet_type == "morada" else "shoot")
 
         # Actualizar nivel
         result = self.level_manager.update(dt, self.asteroids, self.enemies,
                                           self.player.rect.center, self.sprite_manager)
 
+        # Música: sigue al nivel actual (cambia sola en el punto oscuro de la transición)
+        if self.level_manager.level_state in ("game_over", "victory"):
+            self.sound_manager.stop_music()
+        else:
+            self.sound_manager.play_music(self.level_manager.current_level)
+
         # Manejar resultados del nivel
+        if result == "level_complete":
+            self.sound_manager.play("level_transition")
+            
         if result in ("level_complete", "boss_spawn", "victory", "game_over"):
             # Limpiar todas las entidades en pantalla antes de la transición
             self.player_bullets.empty()
@@ -77,7 +91,8 @@ class GameState:
 
         if result == "boss_spawn" and self.level_manager.boss:
             self.boss_sprite = self.level_manager.boss
-            self.enemies.add(self.boss_sprite)
+            self.boss_group.add(self.boss_sprite)  # necesario para que boss.alive() sea True
+            self.sound_manager.play("boss_spawn")
 
         # Actualizar entidades
         self._update_entities(dt)
@@ -89,6 +104,20 @@ class GameState:
             self.level_manager, self.powerups
         )
 
+        # Sonidos según los eventos de colisión
+        if events["player_hit"]:
+            self.sound_manager.play("player_hit")
+        if events["asteroid_destroyed"]:
+            self.sound_manager.play("explosion_asteroid")
+        if events["enemy_destroyed"]:
+            self.sound_manager.play("enemy_death")
+        elif events["enemy_hit"]:
+            self.sound_manager.play("enemy_hit")
+        if events["boss_destroyed"]:
+            self.sound_manager.play("boss_death")
+        elif events["boss_hit"]:
+            self.sound_manager.play("boss_hit")
+
         # Agregar explosiones cuando se destruyen entidades
         if renderer and events["explosions"]:
             for pos_x, pos_y in events["explosions"]:
@@ -97,13 +126,21 @@ class GameState:
 
         # Aplicar power-ups
         if events["powerup_collected"]:
+            self.sound_manager.play("powerup_collect")
             self._collect_powerup(events["powerup_collected"])
+            if renderer and events["powerup_pos"]:
+                px, py = events["powerup_pos"]
+                renderer.add_powerup_pickup(px, py, events["powerup_collected"], self.sprite_manager)
 
         # Actualizar power-ups
         self.powerups.update(dt)
 
         # Game over
         if not self.player.alive:
+            # Solo reproducirlo si aún no estábamos en estado de game_over
+            if self.level_manager.level_state != "game_over":
+                self.sound_manager.play("game_over") # <--- AÑADIR AQUÍ
+                
             self.level_manager.level_state = "game_over"
 
     def _update_player_boosts(self, now):
@@ -136,11 +173,13 @@ class GameState:
                     bullets = enemy.get_bullets(self.player.rect.center)
                     if bullets:
                         self.enemy_bullets.add(*bullets)
+                        self.sound_manager.play("enemy_shoot")
                 #O si un enemigo normal dispara de uno en uno
                 elif hasattr(enemy, 'get_bullet'):
                     bullet = enemy.get_bullet(self.player.rect.center)
                     if bullet:
                         self.enemy_bullets.add(bullet)
+                        self.sound_manager.play("enemy_shoot")
 
         # Actualizar jefe
         if self.boss_sprite and self.boss_sprite.alive():
@@ -148,6 +187,7 @@ class GameState:
             if should_fire:
                 for b in self.boss_sprite.get_bullets(self.player.rect.center):
                     self.enemy_bullets.add(b)
+                self.sound_manager.play("eye_spawn")
 
     def _collect_powerup(self, power_type):
         """Recoger power-up y aplicar efecto"""

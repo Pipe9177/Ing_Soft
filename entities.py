@@ -39,6 +39,7 @@ class Player(pygame.sprite.Sprite):
         self.damage_multiplier = 1.0
         self.fire_rate_multiplier = 1.0
         self.bullet_type = "dorada"  # Tipo de bala actual (dorada, morada, verde)
+        self.god_mode = False  # MODO DIOS: si es True no recibe daño (se activa con el truco de config.py)
 
     def update(self, keys, dt):
         """Actualizar posición """
@@ -94,6 +95,8 @@ class Player(pygame.sprite.Sprite):
 
     def take_damage(self, amount):
         """Gestionar daño recibido """
+        if self.god_mode:  # MODO DIOS: ignora todo el daño
+            return False
         if self.invulnerable or not self.alive:
             return False
         self.health -= amount
@@ -703,11 +706,21 @@ class PowerUp(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x, y))
         self.speed = 2
         self.time_alive = 0
+        self.anim_frame = 0
+        self.anim_timer = 0
 
     def update(self, dt):
         """Actualizar posición del power-up"""
         self.rect.y += self.speed
         self.time_alive += dt
+
+        # Animacion de flotar (todos los frames tienen el mismo tamaño, el rect no cambia)
+        if self.sprite_manager:
+            self.anim_timer += dt
+            if self.anim_timer > 90:  # ms por frame
+                self.anim_timer = 0
+                self.anim_frame += 1
+                self.image = self.sprite_manager.get_powerup_float_frame(self.power_type, self.anim_frame)
         # Eliminar si sale de pantalla
         if self.rect.top > SCREEN_HEIGHT + 30:
             self.kill()

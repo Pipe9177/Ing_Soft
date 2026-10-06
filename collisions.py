@@ -23,8 +23,9 @@ def asteroid_hitbox(asteroid):
 class CollisionManager:
     """Gestiona todas las colisiones del juego"""
 
-    def __init__(self):
+    def __init__(self, sprite_manager=None):
         self.score = 0
+        self.sprite_manager = sprite_manager  # para que los power-ups usen sus sprites
 
     def check_all(self, player, player_bullets, enemy_bullets, asteroids, enemies, boss,
                   level_manager, powerups=None):
@@ -33,9 +34,11 @@ class CollisionManager:
             "player_hit": False,
             "asteroid_destroyed": False,
             "enemy_destroyed": False,
+            "enemy_hit": False,
             "boss_hit": False,
             "boss_destroyed": False,
             "powerup_collected": None,
+            "powerup_pos": None,  # donde se recogio (para la animacion)
             "explosions": [] #Guarda la ubicacion de la explosion para el sprint
         }
 
@@ -69,7 +72,7 @@ class CollisionManager:
                         # Power-up drop - solo si no hay power-up activo
                         if powerups is not None and not has_active_powerup and random.random() < POWERUP_DROP_CHANCE:
                             power_type = random.choice(["health", "orange", "blue"])
-                            powerups.add(PowerUp(asteroid.rect.centerx, asteroid.rect.centery, power_type))
+                            powerups.add(PowerUp(asteroid.rect.centerx, asteroid.rect.centery, power_type, self.sprite_manager))
                     break
 
         # Balas del jugador vs enemigos
@@ -90,7 +93,9 @@ class CollisionManager:
                         # Power-up drop - solo si no hay power-up activo
                         if powerups is not None and not has_active_powerup and random.random() < POWERUP_DROP_CHANCE:
                             power_type = random.choice(["health", "orange", "blue"])
-                            powerups.add(PowerUp(enemy.rect.centerx, enemy.rect.centery, power_type))
+                            powerups.add(PowerUp(enemy.rect.centerx, enemy.rect.centery, power_type, self.sprite_manager))
+                        else:
+                            events["enemy_hit"] = True  # recibió daño pero sigue vivo
                     break
 
         # Balas del jugador vs jefe
@@ -141,6 +146,7 @@ class CollisionManager:
             for powerup in powerups:
                 if player.rect.colliderect(powerup.rect):
                     events["powerup_collected"] = powerup.power_type
+                    events["powerup_pos"] = powerup.rect.center
                     powerup.kill()
 
         return events

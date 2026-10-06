@@ -14,12 +14,15 @@ class Game:
     """Clase principal del juego"""
 
     def __init__(self):
+        pygame.mixer.pre_init(44100, -16, 2, 512)  # audio estéreo, poca latencia
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption(TITLE)
         self.clock = pygame.time.Clock()
         self.running = True
         self.game_started = False
+        self.god_mode = False      # MODO DIOS (se activa escribiendo CHEAT_GOD_MODE_CODE)
+        self.cheat_buffer = ""     # ultimos numeros que escribio el jugador
 
         # Estado y renderizador
         self.game_state = GameState()
@@ -33,6 +36,7 @@ class Game:
             self._handle_events()
 
             if self.game_started:
+                self.game_state.player.god_mode = self.god_mode  # aplica el MODO DIOS (tambien tras reiniciar)
                 keys = pygame.key.get_pressed() # Teclas
                 self.game_state.update(dt, keys, self.renderer)
                 self.game_state._apply_powerups()
@@ -44,6 +48,17 @@ class Game:
         pygame.quit()
         sys.exit()
 
+    def _check_cheat_code(self, event):
+        """Lee los numeros que escribe el jugador; si coinciden con el truco, activa/desactiva el MODO DIOS"""
+        if not event.unicode.isdigit():      # solo cuentan numeros (fila superior y teclado numerico);
+            return                           # las demas teclas (flechas, espacio...) se ignoran
+        self.cheat_buffer = (self.cheat_buffer + event.unicode)[-len(CHEAT_GOD_MODE_CODE):]
+        if self.cheat_buffer == CHEAT_GOD_MODE_CODE:
+            self.cheat_buffer = ""
+            self.god_mode = not self.god_mode
+            self.game_state.player.god_mode = self.god_mode
+            self.game_state.sound_manager.play("powerup_collect")  # sonido de confirmacion
+
     def _handle_events(self):
         """Manejar eventos de entrada"""
         for event in pygame.event.get():
@@ -51,6 +66,8 @@ class Game:
                 self.running = False
 
             if event.type == pygame.KEYDOWN:
+                if self.game_started:
+                    self._check_cheat_code(event)
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
                 if event.key == pygame.K_RETURN and not self.game_started:

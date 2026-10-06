@@ -22,6 +22,10 @@ class HUD:
         # Barra de vida del jugador
         self._draw_player_health(surface, player)
 
+        # Indicador de MODO DIOS
+        if getattr(player, "god_mode", False):
+            self._draw_god_mode(surface, player)
+
         # Información de nivel y objetivos
         self._draw_level_info(surface, level_manager)
 
@@ -31,6 +35,14 @@ class HUD:
         # Barra de vida del jefe (RF-13)
         if level_manager.boss:
             self._draw_boss_health(surface, level_manager.boss)
+
+    def _draw_god_mode(self, surface, player):
+        """Aviso 'MODO DIOS' junto a la barra de vida y un aro dorado alrededor de la nave"""
+        gold = (255, 215, 0)
+        text = self.font_small.render("MODO DIOS", True, gold)
+        surface.blit(text, (330, 12))  # a la derecha de "HP: 100/100"
+        radius = max(player.rect.width, player.rect.height) // 2 + 6
+        pygame.draw.circle(surface, gold, player.rect.center, radius, 2)
 
     def _draw_player_health(self, surface, player):
         """Barra de vida del jugador"""
