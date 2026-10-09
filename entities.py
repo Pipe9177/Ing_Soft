@@ -587,7 +587,7 @@ class BossProjectile(pygame.sprite.Sprite):
 
         if sprite_manager:
             self.image = sprite_manager.get_boss_projectile_frame(0)
-            self.image = pygame.transform.scale(self.image, (60, 60)) # TAMAÑO DE LOS OJOS 
+            self.image = pygame.transform.scale(self.image, (90, 90)) # TAMAÑO DE LOS OJOS 
         else:
             self.image = pygame.Surface((40, 40), pygame.SRCALPHA)
             pygame.draw.circle(self.image, (255, 0, 150), (20, 20), 20)
@@ -611,7 +611,7 @@ class BossProjectile(pygame.sprite.Sprite):
             self.anim_frame += 1
             if self.sprite_manager:
                 self.image = self.sprite_manager.get_boss_projectile_frame(self.anim_frame)
-                self.image = pygame.transform.scale(self.image, (60, 60))       # ACTUALIZAR AQUI TAMBIEN
+                self.image = pygame.transform.scale(self.image, (90, 90))       # ACTUALIZAR AQUI TAMBIEN
 
     def take_damage(self, amount=1):
         self.health -= amount
@@ -630,11 +630,12 @@ class Boss(pygame.sprite.Sprite):
         self.state = "ataques" # Estado inicial
         self.anim_frame = 0
         self.anim_timer = 0
+        self.next_shot_delay = BOSS_FIRE_RATE       # Disparos al azar
 
         # Usar sprite de jefe o forma geométrica como Hitbox
         if sprite_manager and hasattr(sprite_manager, 'boss_sprites'):
             raw_image = sprite_manager.boss_sprites["ataques"][0]
-            self.image = pygame.transform.scale(raw_image, (100, 100)) #Ajuste animacion <---- Tamaño ( si modificas esto 
+            self.image = pygame.transform.scale(raw_image, (180, 180)) #Ajuste animacion <---- Tamaño ( si modificas esto 
                                                                         # para no dañar la animacion tenes que modificar lo siguiente: 
                                                                         # esta en "def update" self.image )
         else:
@@ -659,7 +660,6 @@ class Boss(pygame.sprite.Sprite):
 
     def update(self, dt, player_pos=None):
 
-
         #Actualizar animaciones
         self.anim_timer += dt
         if self.anim_timer > 100:       #Velocidad de cuadro por ms
@@ -668,7 +668,7 @@ class Boss(pygame.sprite.Sprite):
                 frames = self.sprite_manager.boss_sprites[self.state]
                 self.anim_frame = (self.anim_frame + 1) % len(frames)
                 frame_image = frames[self.anim_frame]
-                self.image = pygame.transform.scale(frame_image, (100, 100)) # ESTO SI O SI LO TENES QUE MODIFICAR
+                self.image = pygame.transform.scale(frame_image, (180, 180)) # ESTO SI O SI LO TENES QUE MODIFICAR
 
             #Si termina la animacion de impacto regresar a la anterior
             if self.state == "impacto" and self.anim_frame == 0:
@@ -686,6 +686,8 @@ class Boss(pygame.sprite.Sprite):
         #Movimiento oscilante
         self.rect.x = SCREEN_WIDTH // 2 + math.sin(pygame.time.get_ticks() * 0.002) * 200
 
+        # Mantiene al jefe dentro de la pantalla
+        self.rect.clamp_ip(pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
 
         #Control de fase vulnerable (si quieres cambiar este valor BOSS_VULNERABLE_DURATION)
         if self.phase == "vulnerable":
@@ -700,9 +702,20 @@ class Boss(pygame.sprite.Sprite):
         #Mientras se encuentra en fase de ataque genera proyectiles hasta el max
         now = pygame.time.get_ticks()
         if self.phase == "attack" and self.projectiles_spawned < BOSS_MAX_PROJECTILES:
-            if now - self.last_shot > BOSS_FIRE_RATE:
+            if now - self.last_shot > self.next_shot_delay:
                 self.last_shot = now
-                self.projectiles_spawned += 1
+
+                # Projectiles disparados aleatoriamente
+                aleatori = BOSS_MAX_PROJECTILES - self.projectiles_spawned
+                cuenta = random.randint(1, min(3, aleatori)) # Lanzamiento en rafaga ( no 1 por 1 )
+
+                self.projectiles_spawned += cuenta
+
+                # Implementa un tiempo aleatorio para la siguiente rafaga
+                self.next_shot_delay = random.randint(800, 2500)
+
+                # Guarda la informacion de cuando lo solto
+                self.almace_cuenta = cuenta
                 return True
             return False
 
