@@ -98,6 +98,21 @@ class HUD:
         text = self.font_medium.render(f"Puntos: {score}", True, COLOR_HUD)
         surface.blit(text, (SCREEN_WIDTH - 200, 10))
 
+
+    def draw_pause(self, surface):
+        """Pantalla/Overlay de Menú de Pausa"""
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))  # Oscurece la pantalla
+        surface.blit(overlay, (0, 0))
+
+        title = self.font_large.render("JUEGO EN PAUSA", True, (255, 255, 0))
+        rect_title = title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
+        surface.blit(title, rect_title)
+
+        info = self.font_medium.render("Presiona P para reanudar", True, COLOR_HUD)
+        rect_info = info.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+        surface.blit(info, rect_info)
+
     def _draw_boss_health(self, surface, boss):
         """Barra de vida del Cthulhu"""
         bar_width = 400
@@ -151,7 +166,7 @@ class HUD:
             rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             surface.blit(text, rect)
 
-    def draw_victory(self, surface):
+    def draw_victory(self, surface, score, high_score):
         """Pantalla de victoria"""
         surface.fill((0, 0, 50))
         text = self.font_large.render("¡VICTORIA!", True, (0, 255, 0))
@@ -162,17 +177,39 @@ class HUD:
         rect2 = text2.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
         surface.blit(text2, rect2)
 
-        text3 = self.font_small.render("Presiona R para reiniciar", True, COLOR_HUD)
-        rect3 = text3.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
+
+        # Muestra puntajes
+        score_text = self.font_medium.render(f"Puntaje Obtenido: {score}", True, (255, 255, 0))
+        rect_score = score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+        surface.blit(score_text, rect_score)
+
+        high_text = self.font_medium.render(f"Mayor Puntaje: {high_score}", True, (0, 255, 255))
+        rect_high = high_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60))
+        surface.blit(high_text, rect_high)
+
+
+        # Pausa o reiniciar
+        text3 = self.font_small.render("Presiona R para reiniciar o ESC para salir", True, COLOR_HUD)
+        rect3 = text3.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 120))
         surface.blit(text3, rect3)
 
-    def draw_game_over(self, surface):
+    def draw_game_over(self, surface, score, high_score):
         """Pantalla de game over"""
         surface.fill((50, 0, 0))
         text = self.font_large.render("GAME OVER", True, (255, 0, 0))
         rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50))
         surface.blit(text, rect)
 
+        # Muestra de Puntajes
+        score_text = self.font_medium.render(f"Puntaje Obtenido: {score}", True, (255, 255, 0))
+        rect_score = score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
+        surface.blit(score_text, rect_score)
+
+        high_text = self.font_medium.render(f"Mayor Puntaje: {high_score}", True, (0, 255, 255))
+        rect_high = high_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+        surface.blit(high_text, rect_high)
+
+        #REINICIO DESPUES DE PERDER
         text3 = self.font_small.render("Presiona R para reiniciar", True, COLOR_HUD)
         rect3 = text3.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80))
         surface.blit(text3, rect3)
