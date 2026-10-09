@@ -341,9 +341,11 @@ class Enemy(pygame.sprite.Sprite):
         """Patrones de movimiento predefinidos"""
         self.time_alive += dt
 
-        # Verificar si salió de pantalla ANTES de cualquier otra lógica
+        # Verificar si salió de pantalla en caso de tal, regresarlo hasta eliminacion
         if self.rect.top > SCREEN_HEIGHT + 50:
-            self.kill()
+            self.rect.bottom = 0 
+            self.rect.centerx = random.randint(50, SCREEN_WIDTH - 50)
+            self.start_x = self.rect.centerx
             return False
 
         # Movimiento según tipo de enemigo
@@ -427,6 +429,13 @@ class Enemy(pygame.sprite.Sprite):
             if dist > 0:
                 dx /= dist
                 dy /= dist
+
+            #Garantiza que la bala siempre caiga y nunca se mantenga estatica
+            if dy < 0.2:
+               dy = 1.0
+               dx = 0.0 
+
+        
             return Bullet(
                 self.rect.centerx, 
                 self.rect.bottom, 
@@ -562,6 +571,56 @@ class Ciclope(pygame.sprite.Sprite):
         return False
 
 
+class BossProjectile(pygame.sprite.Sprite):
+    """Proyectil que persigue al jugador"""
+
+    def __init__(self, x, y, speed, sprite_manager=None, health=1):
+        super().__init__()
+        self.sprite_manager = sprite_manager
+        self.speed = speed
+        self.health = health
+        self.max_health = health
+        self.bullet_type = "boss"
+        self.damage = 10            # DAÑO REALIZADO POR LOS OJOS
+        self.anim_frame = 0
+        self.anim_timer = 0
+
+        if sprite_manager:
+            self.image = sprite_manager.get_boss_projectile_frame(0)
+            self.image = pygame.transform.scale(self.image, (60, 60)) # TAMAÑO DE LOS OJOS 
+        else:
+            self.image = pygame.Surface((40, 40), pygame.SRCALPHA)
+            pygame.draw.circle(self.image, (255, 0, 150), (20, 20), 20)
+
+        self.rect = self.image.get_rect(center=(x, y)) 
+
+    def update(self, dt, player_pos=None):
+        """Persigue al jugador activamente en cada frame"""
+        if player_pos:
+            dx = player_pos[0] - self.rect.centerx
+            dy = player_pos[1] - self.rect.centery
+            dist = math.hypot(dx, dy)
+            if dist > 0:
+                self.rect.x += (dx / dist) * self.speed
+                self.rect.y += (dy / dist) * self.speed
+
+        #Frames animados del sprint
+        self.anim_timer += dt
+        if self.anim_timer > 80:
+            self.anim_timer = 0
+            self.anim_frame += 1
+            if self.sprite_manager:
+                self.image = self.sprite_manager.get_boss_projectile_frame(self.anim_frame)
+                self.image = pygame.transform.scale(self.image, (60, 60))       # ACTUALIZAR AQUI TAMBIEN
+
+    def take_damage(self, amount=1):
+        self.health -= amount
+        if self.health <= 0:
+            self.kill()
+            return True
+        return False
+
+
 class Boss(pygame.sprite.Sprite):
     """Cthulhu con patrones de ataque avanzados """
 
@@ -589,18 +648,21 @@ class Boss(pygame.sprite.Sprite):
         self.max_health = BOSS_MAX_HEALTH
         self.speed = BOSS_SPEED
         self.last_shot = 0
-        self.fire_rate = BOSS_FIRE_RATE
-        self.pattern = 0
-        self.pattern_timer = 0
         self.entering = True
         self.target_y = 80
+
+        #Fases de ataque
+        self.phase = "attack"           # Palabra clave para el modo de ataque (Invoca) o "Vulnerable" donde podes dañarlo
+        self.vulnerable_timer = 0
+        self.projectiles_spawned = 0    #Cantidad definida de proyectiles generados
+
 
     def update(self, dt, player_pos=None):
 
 
         #Actualizar animaciones
         self.anim_timer += dt
-        if self.anim_timer > 100: #Velocidad de cuadro por ms
+        if self.anim_timer > 100:       #Velocidad de cuadro por ms
             self.anim_timer = 0
             if self.sprite_manager and hasattr(self.sprite_manager, 'boss_sprites'):
                 frames = self.sprite_manager.boss_sprites[self.state]
@@ -621,57 +683,46 @@ class Boss(pygame.sprite.Sprite):
                 self.entering = False
             return False
 
-        self.pattern_timer += dt
-        if self.pattern_timer > BOSS_PATTERN_CHANGE:
-            self.pattern_timer = 0
-            self.pattern = (self.pattern + 1) % 3
+        #Movimiento oscilante
+        self.rect.x = SCREEN_WIDTH // 2 + math.sin(pygame.time.get_ticks() * 0.002) * 200
 
-        # Movimiento según patrón
-        if self.pattern == 0:  # Oscilación suave
-            self.rect.x = SCREEN_WIDTH // 2 + math.sin(pygame.time.get_ticks() * 0.002) * 200
-        elif self.pattern == 1:  # Persecución lenta
-            if player_pos:
-                self.rect.x += math.copysign(self.speed * 0.5, player_pos[0] - self.rect.x)
-        elif self.pattern == 2:  # Movimiento en figura
-            t = pygame.time.get_ticks() * 0.001
-            self.rect.x = SCREEN_WIDTH // 2 + math.sin(t) * 150
-            self.rect.y = self.target_y + math.cos(t * 2) * 30
 
-        self.rect.clamp_ip(pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
+        #Control de fase vulnerable (si quieres cambiar este valor BOSS_VULNERABLE_DURATION)
+        if self.phase == "vulnerable":
+            self.vulnerable_timer += dt
+            if self.vulnerable_timer >= BOSS_VULNERABLE_DURATION:
+                #RETORNA FASE DE ATAQUE
+                self.phase = "attack"
+                self.vulnerable_timer = 0
+                self.projectiles_spawned = 0
+            return False
 
-        # Disparo según patrón
+        #Mientras se encuentra en fase de ataque genera proyectiles hasta el max
         now = pygame.time.get_ticks()
-        if now - self.last_shot > self.fire_rate:
-            self.last_shot = now
-            return True
-        return False
+        if self.phase == "attack" and self.projectiles_spawned < BOSS_MAX_PROJECTILES:
+            if now - self.last_shot > BOSS_FIRE_RATE:
+                self.last_shot = now
+                self.projectiles_spawned += 1
+                return True
+            return False
 
-    def get_bullets(self, player_pos):
-        """Crear proyectiles según patrón activo """
-        bullets = []
-        if self.pattern == 0:  # Disparo simple
-            bullets.append(Bullet(self.rect.centerx, self.rect.bottom, BOSS_BULLET_SPEED,
-                                 COLOR_BOSS_BULLET, (0, 1), sprite_manager=self.sprite_manager,
-                                 bullet_type="boss", damage=15))
-        elif self.pattern == 1:  # Triple disparo
-            for angle in [-0.3, 0, 0.3]:
-                dx = math.sin(angle)
-                dy = math.cos(angle)
-                bullets.append(Bullet(self.rect.centerx, self.rect.bottom, BOSS_BULLET_SPEED,
-                                     COLOR_BOSS_BULLET, (dx, dy), sprite_manager=self.sprite_manager,
-                                     bullet_type="boss", damage=15))
-        elif self.pattern == 2:  # Abanico de 5 disparos
-            for i in range(5):
-                angle = (i - 2) * 0.25
-                dx = math.sin(angle)
-                dy = math.cos(angle)
-                bullets.append(Bullet(self.rect.centerx, self.rect.bottom, BOSS_BULLET_SPEED,
-                                     COLOR_BOSS_BULLET, (dx, dy), sprite_manager=self.sprite_manager,
-                                     bullet_type="boss", damage=15))
-        return bullets
+    def spawn_projectile(self):
+        """CREA EL PROJECTILE"""
+        return BossProjectile(
+            self.rect.centerx,
+            self.rect.bottom,
+            speed=BOSS_PROJECTILE_SPEED,
+            sprite_manager=self.sprite_manager
+        )
+
 
     def take_damage(self, amount=1):
-        """Recibir daño y cambiar de animacion"""
+        """Recibir daño solo si esta en fase VULNERABLE y cambiar de animacion"""
+        
+        if self.phase != "vulnerable":
+            return False
+        
+        
         self.health -= amount
         if self.state != "impacto":
             self.state = "impacto"
