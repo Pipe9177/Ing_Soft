@@ -19,7 +19,10 @@ PLAYER_BULLET_SPEED = 8
 PLAYER_INVULN_TIME = 1500  # ms de invulnerabilidad tras recibir daño
 PLAYER_BULLET_SIZE = 40  # Tamaño de las balas del jugador (75% del original)
 
+# === Puntaje Maximo y Pausa === 
 
+HIGH_SCORE_FILE = "highscore.txt"
+COLOR_PAUSE_OVERLAY = (0, 0, 0, 150)  #Fondo Semitransparente para pausa
 
 # === Nivel 1: Lluvia de Asteroides 
 LEVEL1_ASTEROID_GOAL = 15
