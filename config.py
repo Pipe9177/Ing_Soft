@@ -79,7 +79,7 @@ ENEMY_VERDE_COUNT = 2
 ENEMY_VERDE_FIRE_RATE = 1750
 ENEMY_VERDE_SPEED = 2.0
 ENEMY_VERDE_HEALTH = 2
-ENEMY_VERDE_BULLET_DAMAGE = 50
+ENEMY_VERDE_BULLET_DAMAGE = 25
 
 
 # === Power-ups ===
@@ -88,8 +88,8 @@ POWERUP_DROP_CHANCE = 0.15  # 15% de probabilidad de drop
 POWERUP_DURATION = 7000  # ms de duración para power-ups temporales (7 segundos)
 POWERUP_SCALE = 1.5  # Tamaño de los sprites de power-ups (1 = original 40x40, 1.5 = 60x60, 2 = 80x80)
 
-# Power-up naranja (bala morada): +0.00025 daño
-POWERUP_ORANGE_DAMAGE_MULTIPLIER = 1.00025
+# Power-up naranja (bala morada): +5 daño
+POWERUP_ORANGE_DAMAGE_MULTIPLIER = 5.0
 POWERUP_ORANGE_FIRE_RATE_MULTIPLIER = 2.0  # Aumenta el tiempo de recarga (mas lento)
 BULLET_MORADA_SPEED = 1.5  # Velocidad de la bala morada
 
