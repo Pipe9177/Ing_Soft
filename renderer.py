@@ -90,11 +90,16 @@ class Renderer:
 
         # Victoria
         if game_state.level_manager.level_state == "victory":
-            self.hud.draw_victory(self.screen)
+            self.hud.draw_victory(self.screen, game_state.collision_manager.score, game_state.high_score)
 
         # Game Over
         if game_state.level_manager.level_state == "game_over":
-            self.hud.draw_game_over(self.screen)
+            self.hud.draw_game_over(self.screen, game_state.collision_manager.score, game_state.high_score)
+
+
+        # Menu de pausa 
+        if game_state.paused:
+            self.hud.draw_pause(self.screen)
 
         pygame.display.flip()
 
