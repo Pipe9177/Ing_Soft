@@ -195,8 +195,10 @@ class GameState:
         if self.boss_sprite and self.boss_sprite.alive():
             should_fire = self.boss_sprite.update(dt, self.player.rect.center)
             if should_fire and self.boss_sprite.phase == "attack":
-                new_proj = self.boss_sprite.spawn_projectile()
-                self.enemy_bullets.add(new_proj)
+                cuenta = getattr(self.boss_sprite, 'almace_cuenta', 1)
+                for _ in range(cuenta):
+                    new_proj = self.boss_sprite.spawn_projectile()
+                    self.enemy_bullets.add(new_proj)
                 self.sound_manager.play("eye_spwan")
 
             #Verifica si se destruyeron todos los proyectiles
