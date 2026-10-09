@@ -6,8 +6,8 @@ Parámetros centralizados de configuración del juego ( Aca mas que todo configu
 """
 
 # === Ventana ===
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1024
+SCREEN_HEIGHT = 700
 FPS = 60
 TITLE = "LAS FLIPANTES AVENTURAS DE YESID BALANTA"
 
@@ -52,8 +52,8 @@ BOSS_VULNERABLE_DURATION = 5000     # Tiempo en el cual el boss no ataca
 BOSS_PATTERN_CHANGE = 3000          # ms entre cambios de patrón
 
 # === Asteroides (compartido) ===
-ASTEROID_MIN_RADIUS = 30  # Aumentado 25% (15 -> 19)
-ASTEROID_MAX_RADIUS = 50  # Aumentado 25% (40 -> 50)
+ASTEROID_MIN_RADIUS = 45  # Aumentado 
+ASTEROID_MAX_RADIUS = 75  # Aumentado 
 ASTEROID_HEALTH_DIVISOR = 20  # salud = radio / divisor
 
 # === Enemigos por tipo ===
