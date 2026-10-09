@@ -73,6 +73,11 @@ class HUD:
         surface.blit(level_text, (10, y))
         y += 35
 
+        # Si el jefe esta activo no se presentan los objetivos
+        if level_manager.boss:
+            return
+
+
         if objectives["asteroids"] > 0:
             text = self.font_small.render(
                 f"Asteroides: {level_manager.asteroids_destroyed}/{objectives['asteroids']}",
