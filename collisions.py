@@ -109,9 +109,9 @@ class CollisionManager:
                         if powerups is not None and not has_active_powerup and random.random() < POWERUP_DROP_CHANCE:
                             power_type = random.choice(["health", "orange", "blue"])
                             powerups.add(PowerUp(enemy.rect.centerx, enemy.rect.centery, power_type, self.sprite_manager))
-                        else:
-                            events["enemy_hit"] = True  # recibió daño pero sigue vivo
-                    break
+            else:
+                events["enemy_hit"] = True  # recibió daño pero sigue vivo
+            break
 
         # Balas del jugador vs OJOS SALTONES (RAGEBAIT DE ODIO SI NO ENCONTRAS ESTA LINEA) <--------
             for bullet in player_bullets:
