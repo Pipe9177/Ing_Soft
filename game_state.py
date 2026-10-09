@@ -161,7 +161,17 @@ class GameState:
     def _update_entities(self, dt):
         """Actualizar todas las entidades"""
         self.player_bullets.update(dt)
-        self.enemy_bullets.update(dt)
+
+
+        #Actualizar projectiles del boss guiandose en la posicion
+        for bullet in self.enemy_bullets:
+            if hasattr(bullet, 'update') and 'player_pos' in bullet.update.__code__.co_varnames:
+                bullet.update(dt, self.player.rect.center)  # Eso de arriba permite al metodo
+                                                            # update recibir la posicion sin saltar error
+            else:
+                bullet.update(dt) # En caso de que no sea los ojos, manda sin posicion
+
+
         self.asteroids.update(dt)
 
         # Actualizar enemigos
@@ -184,10 +194,18 @@ class GameState:
         # Actualizar jefe
         if self.boss_sprite and self.boss_sprite.alive():
             should_fire = self.boss_sprite.update(dt, self.player.rect.center)
-            if should_fire:
-                for b in self.boss_sprite.get_bullets(self.player.rect.center):
-                    self.enemy_bullets.add(b)
-                self.sound_manager.play("eye_spawn")
+            if should_fire and self.boss_sprite.phase == "attack":
+                new_proj = self.boss_sprite.spawn_projectile()
+                self.enemy_bullets.add(new_proj)
+                self.sound_manager.play("eye_spwan")
+
+            #Verifica si se destruyeron todos los proyectiles
+            active_boss_projectiles = sum(1 for b in self.enemy_bullets
+                                          if isinstance(b, BossProjectile))   
+            if self.boss_sprite.phase == "attack" and self.boss_sprite.projectiles_spawned >= BOSS_MAX_PROJECTILES and active_boss_projectiles == 0:
+                #Cambia a Fase vulnerable
+                self.boss_sprite.phase = "vulnerable"
+                self.boss_sprite.vulnerable_timer = 0
 
     def _collect_powerup(self, power_type):
         """Recoger power-up y aplicar efecto"""
