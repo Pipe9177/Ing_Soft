@@ -66,12 +66,25 @@ class Game:
                 self.running = False
 
             if event.type == pygame.KEYDOWN:
+
+                #Comprueba codigos de trucos
                 if self.game_started:
                     self._check_cheat_code(event)
+
+                # Manda pausa con la tecla P durante la partida
+                if self.game_state.level_manager.level_state == "playing":
+                    if event.key == pygame.K_p:
+                        self.game_state.paused = not self.game_state.paused
+
+                # Se sale del juego con la tecla ESC 
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
+                
+                # Carga el juego desde el inicio      
                 if event.key == pygame.K_RETURN and not self.game_started:
                     self.game_started = True
+
+                # Reincia partida si esta en game over o victory    
                 if event.key == pygame.K_r and self.game_state.level_manager.level_state in ("victory", "game_over"):
                     self.game_state.reset()
 
