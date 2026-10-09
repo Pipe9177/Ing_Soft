@@ -53,6 +53,8 @@ class SpriteManager:
         }
         self.player_hit = []
         self.backgrounds = {}
+        self.bg_level1_frames = []  # Fondo animado nivel 1: Atardecer
+        self.bg_level2_frames = []  # Fondo animado nivel 2: Espacio
         self.bg_levels3_frames = [] # Sprints nvl 3
         self.bg_boss_frames = [] # Sprints boss
         self.powerups = {}
@@ -154,16 +156,24 @@ class SpriteManager:
     def _load_backgrounds(self):
         """Cargar fondos de pantalla"""
         fondo_path = os.path.join(IMAGES_PATH, "Fondo")
-        # Fondo 1 - Nivel 1 (vertical, necesita redimensionar)
-        bg1 = self._load_image(os.path.join(fondo_path, "Fondo1.png"))
-        # Redimensionar para cubrir toda la pantalla horizontalmente
-        bg1 = self._resize_background(bg1)
-        self.backgrounds["level1"] = bg1
+        # Fondos animados fotograma a fotograma para niveles 1 y 2.
+        # Se ordenan por nombre para conservar la secuencia de los frames.
 
-        # Fondo 2 - Niveles 2
-        bg2 = self._load_image(os.path.join(fondo_path, "Fondo2.jpeg"))
-        bg2 = self._resize_background(bg2)
-        self.backgrounds["level2"] = bg2
+        #Fondo1
+        atardecer_path = os.path.join(fondo_path, "Atardecer")
+        if os.path.isdir(atardecer_path):
+            for file in sorted(os.listdir(atardecer_path)):
+                if file.lower().endswith(".png"):
+                    img = self._load_image(os.path.join(atardecer_path, file))
+                    self.bg_level1_frames.append(self._resize_background(img))
+
+        #Fondo2
+        espacio_path = os.path.join(fondo_path, "Espacio")
+        if os.path.isdir(espacio_path):
+            for file in sorted(os.listdir(espacio_path)):
+                if file.lower().endswith(".png"):
+                    img = self._load_image(os.path.join(espacio_path, file))
+                    self.bg_level2_frames.append(self._resize_background(img))
 
         #Fondo 3 - Nivel 3 
         Fondo3_path = os.path.join(fondo_path, "Fondo3")
@@ -325,9 +335,15 @@ class SpriteManager:
     def get_background(self, level, ticks=0, is_boss_active=False):
         """Obtener fondo según el nivel"""
         if level == 1:
-            return self.backgrounds["level1"]
+            if self.bg_level1_frames:
+                frame_index = (ticks // 100) % len(self.bg_level1_frames)
+                return self.bg_level1_frames[frame_index]
+            return self.bg_levels3_frames[0] if self.bg_levels3_frames else None
         elif level == 2:
-            return self.backgrounds["level2"]
+            if self.bg_level2_frames:
+                frame_index = (ticks // 100) % len(self.bg_level2_frames)
+                return self.bg_level2_frames[frame_index]
+            return self.bg_levels3_frames[0] if self.bg_levels3_frames else None
         elif level == 3:
             #Si el Jefe final esta activo mostrar animacion
             if is_boss_active and self.bg_boss_frames:
@@ -339,8 +355,8 @@ class SpriteManager:
                 #Dependiendo de como queremos que corra la animacion se modifica el numero 100
                 frame_index = (ticks // 100) % len(self.bg_levels3_frames)
                 return self.bg_levels3_frames[frame_index]
-            return self.backgrounds["level2"]  # Fallback si no hay frames
-        return self.backgrounds["level1"]  # Fallback si el nivel no es válido
+            return self.bg_level2_frames[0] if self.bg_level2_frames else None  # Fallback si no hay frames
+        return self.bg_level1_frames[0] if self.bg_level1_frames else None  # Fallback si el nivel no es válido
 
     def get_powerup(self, power_type):
         """Obtener sprite de power-up"""
