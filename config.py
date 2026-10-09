@@ -30,7 +30,7 @@ LEVEL1_ASTEROID_SPAWN_CHANCE = 0.7  # probabilidad de spawn en cada tick
 
 # === Nivel 2: Combate Mixto 
 LEVEL2_ENEMY_GOAL = 9
-LEVEL2_ASTEROID_GOAL = 5
+LEVEL2_ASTEROID_GOAL = 9
 LEVEL2_ENEMY_SPAWN_RATE = 2000
 LEVEL2_ASTEROID_SPAWN_RATE = 2500
 LEVEL2_ENEMY_SPEED = 2
@@ -38,14 +38,18 @@ LEVEL2_ENEMY_FIRE_RATE = 1500
 LEVEL2_ENEMY_HEALTH = 2
 LEVEL2_ENEMY_BULLET_SPEED = 5
 
-# === Nivel 3: Jefe Final 
+# === Nivel 3: Enemigos  
 LEVEL3_WAVE_ENEMIES = 6
 LEVEL3_ENEMY_SPAWN_RATE = 1500
+
+# === CTHULH ===
 BOSS_MAX_HEALTH = 500
 BOSS_SPEED = 2.5
-BOSS_FIRE_RATE = 800
-BOSS_BULLET_SPEED = 6
-BOSS_PATTERN_CHANGE = 3000  # ms entre cambios de patrón
+BOSS_FIRE_RATE = 2000               # Velocidad que el boss suelta los proyectiles
+BOSS_PROJECTILE_SPEED = 3.0         # Velocidad de el Ojo 
+BOSS_MAX_PROJECTILES = 5            # Max de proyectiles por fases
+BOSS_VULNERABLE_DURATION = 5000     # Tiempo en el cual el boss no ataca
+BOSS_PATTERN_CHANGE = 3000          # ms entre cambios de patrón
 
 # === Asteroides (compartido) ===
 ASTEROID_MIN_RADIUS = 30  # Aumentado 25% (15 -> 19)
