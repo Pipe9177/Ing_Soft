@@ -333,8 +333,8 @@ class Enemy(pygame.sprite.Sprite):
             self.speed = LEVEL2_ENEMY_SPEED
             self.health = LEVEL2_ENEMY_HEALTH
             self.fire_rate = LEVEL2_ENEMY_FIRE_RATE
-            self.bullet_damage = 10
-            self.bullet_type = "blanca"
+            self.bullet_damage = ENEMY_VERDE_BULLET_DAMAGE
+            self.bullet_type = "verde"
         self.max_health = self.health
 
     def update(self, dt, player_pos=None):
