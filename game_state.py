@@ -30,6 +30,10 @@ class GameState:
         self.boss_sprite = None
         self.boss_group = pygame.sprite.Group()  # grupo propio del jefe (no es un enemigo normal)
 
+        # Estado de pausa y record 
+        self.paused = False
+        self.high_score = self._load_high_score()
+
         # Gestores
         self.level_manager = LevelManager()
         self.collision_manager = CollisionManager(self.sprite_manager)
@@ -55,6 +59,10 @@ class GameState:
 
     def update(self, dt, keys, renderer=None):
         """Actualizar estado del juego"""
+
+        if self.paused:
+            return
+
         now = pygame.time.get_ticks()
 
         # Actualizar jugador con boosts
@@ -73,6 +81,7 @@ class GameState:
 
         # Música: sigue al nivel actual (cambia sola en el punto oscuro de la transición)
         if self.level_manager.level_state in ("game_over", "victory"):
+            self._save_high_score()  # Puntaje guardado
             self.sound_manager.stop_music()
         else:
             self.sound_manager.play_music(self.level_manager.current_level)
@@ -240,3 +249,21 @@ class GameState:
             self.player.bullet_type = "dorada"  # Volver a bala original
         if self.speed_boost > 0 and now > self.speed_boost:
             self.speed_boost = 0
+
+    def _load_high_score(self):
+        """Carga el récord desde un archivo de texto"""
+        try:
+            with open(HIGH_SCORE_FILE, "r") as f:
+                return int(f.read().strip())
+        except (FileNotFoundError, ValueError):
+            return 0
+
+    def _save_high_score(self):
+        """Guarda el récord en el archivo si el puntaje actual es mayor"""
+        if self.collision_manager.score > self.high_score:
+            self.high_score = self.collision_manager.score
+            try:
+                with open(HIGH_SCORE_FILE, "w") as f:
+                    f.write(str(self.high_score))
+            except Exception as e:
+                print(f"Error guardando high score: {e}")
