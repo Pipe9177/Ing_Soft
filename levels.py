@@ -249,7 +249,7 @@ class LevelManager:
                 return "level_complete"
 
         elif self.current_level == 2:
-            if self.enemies_destroyed >= objectives["enemies"]:
+            if self.enemies_destroyed >= objectives["enemies"] and self.asteroids_destroyed >= objectives["asteroids"]:
                 self._start_transition(3)
                 return "level_complete"
 
