@@ -174,7 +174,7 @@ class HUD:
         surface.blit(text, rect)
 
         text2 = self.font_medium.render("Has derrotado al Jefe Final", True, COLOR_HUD)
-        rect2 = text2.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20))
+        rect2 = text2.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 30))
         surface.blit(text2, rect2)
 
 
